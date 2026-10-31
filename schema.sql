@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, name TEXT, email TEXT UNIQUE NOT NULL, pw TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN('admin','staff','customer')), reset_token TEXT, reset_exp TEXT);
+CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY, name TEXT NOT NULL, type TEXT, sales_price REAL NOT NULL, cost_price REAL DEFAULT 0, notes TEXT);
+CREATE TABLE IF NOT EXISTS variants(id INTEGER PRIMARY KEY, product_id INT NOT NULL REFERENCES products(id), attribute TEXT, value TEXT, extra_price REAL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS taxes(id INTEGER PRIMARY KEY, name TEXT, rate REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS plans(id INTEGER PRIMARY KEY, name TEXT NOT NULL, price REAL NOT NULL, period TEXT NOT NULL CHECK(period IN('daily','weekly','monthly','yearly')), min_qty INT DEFAULT 1, start_date TEXT, end_date TEXT, auto_close INT DEFAULT 0, allow_pause INT DEFAULT 0, allow_early_close INT DEFAULT 0, allow_renew INT DEFAULT 1);
+CREATE TABLE IF NOT EXISTS quote_templates(id INTEGER PRIMARY KEY, name TEXT, plan_id INT, validity_days INT DEFAULT 30, lines TEXT);
+CREATE TABLE IF NOT EXISTS discounts(id INTEGER PRIMARY KEY, name TEXT, kind TEXT CHECK(kind IN('fixed','percent')), value REAL, min_amount REAL DEFAULT 0, min_qty INT DEFAULT 0, start_date TEXT, end_date TEXT, usage_limit INT, used INT DEFAULT 0, product_id INT, subscription_id INT);
+CREATE TABLE IF NOT EXISTS subscriptions(id INTEGER PRIMARY KEY, number TEXT UNIQUE, customer_id INT NOT NULL, plan_id INT NOT NULL, start_date TEXT, expiry_date TEXT, payment_terms TEXT, status TEXT DEFAULT 'draft', next_billing TEXT);
+CREATE TABLE IF NOT EXISTS sub_lines(id INTEGER PRIMARY KEY, subscription_id INT NOT NULL, product_id INT, variant_id INT, qty INT, unit_price REAL, tax_id INT);
+CREATE TABLE IF NOT EXISTS invoices(id INTEGER PRIMARY KEY, number TEXT UNIQUE, subscription_id INT NOT NULL, customer_id INT NOT NULL, period_start TEXT, issue_date TEXT, due_date TEXT, subtotal REAL, tax REAL, discount REAL, total REAL, status TEXT DEFAULT 'draft', UNIQUE(subscription_id, period_start));
+CREATE TABLE IF NOT EXISTS invoice_lines(id INTEGER PRIMARY KEY, invoice_id INT NOT NULL, description TEXT, qty INT, unit_price REAL, tax_rate REAL, amount REAL);
+CREATE TABLE IF NOT EXISTS payments(id INTEGER PRIMARY KEY, invoice_id INT NOT NULL, method TEXT, amount REAL NOT NULL, paid_on TEXT, note TEXT);
+CREATE INDEX IF NOT EXISTS ix_sub_status ON subscriptions(status); CREATE INDEX IF NOT EXISTS ix_sub_next ON subscriptions(next_billing);
+CREATE INDEX IF NOT EXISTS ix_inv_status ON invoices(status, due_date); CREATE INDEX IF NOT EXISTS ix_inv_cust ON invoices(customer_id);
+CREATE INDEX IF NOT EXISTS ix_pay_inv ON payments(invoice_id);
